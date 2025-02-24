@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice to Text</title>
+</head>
+<body>
+    <h1>Record & Transcribe Audio</h1>
+    <button id="startRecord">Start Recording</button>
+    <button id="stopRecord" disabled>Stop Recording</button>
+    <p><strong>Transcription:</strong></p>
+    <p id="transcriptionText">...</p>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById("startRecord").addEventListener("click", async () => {
+            try {
+                let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    console.log("Recording stopped, processing audio...");
+                    
+                    let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                    let formData = new FormData();
+                    formData.append("audio", audioBlob, "audio.wav");
+
+                    console.log("Sending audio to server...");
+
+                    try {
+                        let response = await fetch("http://127.0.0.1:5000/transcribe", {
+                            method: "POST",
+                            body: formData
+                        });
+
+                        let result = await response.json();
+                        console.log("Server response:", result);
+
+                        if (result.transcription) {
+                            document.getElementById("transcriptionText").innerText = result.transcription;
+                        } else {
+                            document.getElementById("transcriptionText").innerText = "Error in transcription.";
+                        }
+                    } catch (error) {
+                        console.error("Fetch error:", error);
+                        document.getElementById("transcriptionText").innerText = "Error connecting to server.";
+                    }
+                };
+
+                mediaRecorder.start();
+                console.log("Recording started...");
+                document.getElementById("startRecord").disabled = true;
+                document.getElementById("stopRecord").disabled = false;
+            } catch (error) {
+                console.error("Error accessing microphone:", error);
+                alert("Microphone access denied or not available.");
+            }
+        });
+
+        document.getElementById("stopRecord").addEventListener("click", () => {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                console.log("Recording stopped.");
+                document.getElementById("startRecord").disabled = false;
+                document.getElementById("stopRecord").disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
