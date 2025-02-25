@@ -4,7 +4,7 @@ import assemblyai as aai
 from dotenv import load_dotenv
 load_dotenv()
 
-aai.settings.api_key = os.getenv('ASSEMBLYAI_API_KEY')
+aai.settings.api_key = os.getenv('ASSEMBLY_API_KEY')
 
 TWILIO_SAMPLE_RATE = 8000 # Hz
 
